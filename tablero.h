@@ -1,32 +1,45 @@
 #ifndef TABLERO_H
 #define TABLERO_H
 
-struct Tablero {
-    unsigned char* datos;
-    int filas;
-    int columnas;
-    int bytesPorFila;
-};
+#include <cstdint>
+#include "piezas.h"
 
-// --- Funciones de Gestión ---
-void inicializarTablero(Tablero &t, int ancho, int alto);
-void liberarTablero(Tablero &t);
+// ============================================================
+//  El tablero se representa como un arreglo dinamico de filas.
+//  Cada fila es un uint8_t* de (anchoTablero/8) bytes.
+//  Un bit en 1 = celda ocupada, 0 = celda libre.
+// ============================================================
+typedef struct {
+    uint8_t** filas;        // arreglo dinamico de punteros a filas
+    int       alto;         // numero de filas
+    int       ancho;        // numero de columnas (multiplo de 8)
+    int       bytesPerFila; // ancho / 8
+} Tablero;
 
-// --- Funciones Atómicas de Cálculo ---
-// Solo calculan, no modifican nada.
-int calcularPosicionByte(int x, int y, int bytesPorFila);
-unsigned char calcularMascaraBit(int x);
+// Reserva memoria e inicializa el tablero en cero
+void  inicializarTablero(Tablero* tablero, int ancho, int alto);
 
-// --- Funciones Atómicas de Modificación ---
-// Solo modifican, no calculan posiciones.
-void aplicarOR(unsigned char &byte, unsigned char mascara);
-void aplicarANDNOT(unsigned char &byte, unsigned char mascara);
-bool verificarBit(unsigned char byte, unsigned char mascara);
+// Libera toda la memoria dinamica del tablero
+void  liberarTablero(Tablero* tablero);
 
-// --- Funciones de Alto Nivel (usan las atómicas) ---
-void colocarBloque(Tablero &t, int x, int y);
-void quitarBloque(Tablero &t, int x, int y);
-bool hayBloque(Tablero t, int x, int y);
-void imprimirTablero(Tablero t);
+// Devuelve 1 si la celda (fila, col) esta ocupada, 0 si libre
+int   obtenerCelda(const Tablero* tablero, int fila, int col);
 
-#endif
+// Marca la celda (fila, col) como ocupada
+void  ocuparCelda(Tablero* tablero, int fila, int col);
+
+// Fija la pieza actual en el tablero (escribe sus bits)
+void  fijarPieza(Tablero* tablero, const Pieza* pieza);
+
+// Devuelve 1 si el movimiento de la pieza es valido (sin colision)
+int   movimientoValido(const Tablero* tablero, const Pieza* pieza,
+                     int deltaFila, int deltaColumna, uint16_t forma);
+
+// Elimina filas completas y baja las superiores.
+// Devuelve el numero de filas eliminadas.
+int   limpiarFilas(Tablero* tablero);
+
+// Devuelve 1 si la pieza no cabe al generarse (game over)
+int   verificarGameOver(const Tablero* tablero, const Pieza* pieza);
+
+#endif // TABLERO_H
